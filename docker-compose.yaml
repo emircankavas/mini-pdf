@@ -1,0 +1,41 @@
+services:
+  minio:
+    image: minio/minio
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: MINIO_ROOT_USER
+      MINIO_ROOT_PASSWORD: MINIO_ROOT_PASSWORD
+      MINIO_SERVER_URL: https://MINIO_ENDPOINT
+    ports:
+      - "19999:9000"
+      - "19998:9001"
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+  
+  mc:
+    image: minio/mc
+    container_name: minio-mc
+    depends_on:
+      - minio
+    entrypoint: /bin/sh -c "
+      mc alias set myminio http://minio:9000 MINIO_ROOT_USER MINIO_ROOT_PASSWORD &&
+      mc mb myminio/pdf-bucket"
+
+  mini-pdf:
+    image: ghcr.io/emircankavas/mini-pdf
+    container_name: mini-pdf
+    environment:
+      MINIO_ENDPOINT: MINIO_ENDPOINT
+      MINIO_PORT: 443
+      MINIO_ACCESS_KEY: MINIO_ROOT_USER
+      MINIO_SECRET_KEY: MINIO_ROOT_PASSWORD
+      MINIO_USE_SSL: true
+      MINIO_BUCKET_NAME: pdf-bucket
+    ports:
+      - "3000:3000"
+    depends_on:
+      - minio
+
+volumes:
+  minio-data:
